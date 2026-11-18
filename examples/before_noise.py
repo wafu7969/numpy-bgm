@@ -67,7 +67,7 @@ def main(out: Path) -> Path:
            + drone.buf * 0.9
            + reverb(bells.buf, dur=7.0, mix=0.60, damp=4200)
            + air.buf)
-    return render(out / "03_before_noise.wav", mix, fade=(0.5, 4.0))
+    return render(out / "04_before_noise.wav", mix, fade=(0.5, 4.0))
 
 
 if __name__ == "__main__":

@@ -111,7 +111,7 @@ def main(out: Path) -> Path:
            + low.buf
            + reverb(texture.buf, dur=4.5, mix=0.45, damp=2600)
            + perc.buf * 0.9)
-    return render(out / "04_chinese_dream.wav", mix, fade=(0.05, 3.2))
+    return render(out / "05_chinese_dream.wav", mix, fade=(0.05, 3.2))
 
 
 if __name__ == "__main__":

@@ -306,6 +306,17 @@ def tom(sr: int = SR, dur: float = 0.5, tune: float = 92, vel: float = 1.0) -> n
     return _fit(body, vel)
 
 
+def crash(sr: int = SR, dur: float = 1.8, vel: float = 1.0, seed: int = 17) -> np.ndarray:
+    """吊镲：长衰减的高通噪声，用来标记段落起点。"""
+    t = timeline(dur, sr)
+    noise = np.random.default_rng(seed).standard_normal(len(t))
+    noise = bandpass(noise, 2600, 14000, sr)
+    env = np.exp(-t / 0.5)
+    a_n = min(samples(0.003, sr), len(env))
+    env[:a_n] *= np.linspace(0.0, 1.0, a_n)
+    return _fit(noise * env, vel)
+
+
 # ------------------------------------------------------------------ 空间与混音
 
 def _convolve(x: np.ndarray, ir: np.ndarray) -> np.ndarray:

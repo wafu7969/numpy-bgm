@@ -108,7 +108,7 @@ def main(out: Path) -> Path:
     mix = dry + wet + noise.buf
     mix = lowpass(mix, 11000)
     mix = tape(mix, wow=0.0016, flutter=0.0005)
-    return render(out / "05_midnight_radio.wav", mix, fade=(0.05, 3.0), drive=0.08)
+    return render(out / "06_midnight_radio.wav", mix, fade=(0.05, 3.0), drive=0.08)
 
 
 if __name__ == "__main__":

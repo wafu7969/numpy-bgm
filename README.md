@@ -3,15 +3,16 @@
 只用 **numpy + 标准库** 写 BGM 的实验仓库。没有音源、没有采样包、没有 DAW，
 每一个音符都是逐样本算出来的。
 
-仓库里包含 5 首可以直接听的完整曲子（WAV/MP3）和生成它们的全部代码：
+仓库里包含 6 首可以直接听的完整曲子（WAV/MP3）和生成它们的全部代码：
 
 | # | 曲目 | 风格 | BPM | 调性 | 情绪 |
 |---|------|------|-----|------|------|
-| 01 | [夏日信笺](demos/01_summer_letter.mp3) | 钢琴叙事 | 76 | C 大调 | 午后、信纸、慢镜头 |
-| 02 | [霓虹夜行](demos/02_neon_night.mp3) | 电子 / EDM | 122 | A 小调 | 夜路、车灯、肾上腺素 |
-| 03 | [白噪音之前](demos/03_before_noise.mp3) | 氛围 Ambient | 自由 | D♭ 大调 | 清晨、空房间 |
-| 04 | [山河入梦](demos/04_chinese_dream.mp3) | 中国风 | 68 | D 宫五声 | 远山、宣纸、留白 |
-| 05 | [深夜电台](demos/05_midnight_radio.mp3) | Lo-Fi Hip-Hop | 78 | C 大调 | 凌晨两点、台灯、日记 |
+| 01 | [向光而行](demos/01_toward_the_light.mp3) | 电影感 / 励志 | 104 | D 大调 | 清晨出发、向上 |
+| 02 | [夏日信笺](demos/02_summer_letter.mp3) | 钢琴叙事 | 76 | C 大调 | 午后、信纸、慢镜头 |
+| 03 | [霓虹夜行](demos/03_neon_night.mp3) | 电子 / EDM | 122 | A 小调 | 夜路、车灯、肾上腺素 |
+| 04 | [白噪音之前](demos/04_before_noise.mp3) | 氛围 Ambient | 自由 | D♭ 大调 | 清晨、空房间 |
+| 05 | [山河入梦](demos/05_chinese_dream.mp3) | 中国风 | 68 | D 宫五声 | 远山、宣纸、留白 |
+| 06 | [深夜电台](demos/06_midnight_radio.mp3) | Lo-Fi Hip-Hop | 78 | C 大调 | 凌晨两点、台灯、日记 |
 
 > GitHub 页面里点上面的文件名即可在线试听；`output/` 下是渲染出来的 44.1kHz/16bit WAV。
 
@@ -19,12 +20,13 @@
 
 ```bash
 pip install numpy          # 唯一的依赖
-python generate_all.py     # 一次渲染 5 首，输出到 output/
+python generate_all.py     # 一次渲染 6 首，输出到 output/
 ```
 
 单独渲染某一首：
 
 ```bash
+python -m examples.toward_the_light
 python -m examples.summer_letter
 python -m examples.neon_night
 python -m examples.before_noise
@@ -40,11 +42,12 @@ numpy-bgm/
 │   ├── synth.py        # 振荡器、包络、滤波、混响、鼓组、总线、导出
 │   └── notation.py     # 音名 / 音阶 / 和弦 / 摇摆
 ├── examples/
-│   ├── summer_letter.py    # 01 温暖钢琴
-│   ├── neon_night.py       # 02 电子
-│   ├── before_noise.py     # 03 氛围
-│   ├── chinese_dream.py    # 04 中国风
-│   └── midnight_radio.py   # 05 Lo-Fi
+│   ├── toward_the_light.py  # 01 励志 / 电影感
+│   ├── summer_letter.py     # 02 温暖钢琴
+│   ├── neon_night.py        # 03 电子
+│   ├── before_noise.py      # 04 氛围
+│   ├── chinese_dream.py     # 05 中国风
+│   └── midnight_radio.py    # 06 Lo-Fi
 ├── demos/              # 试听用的 MP3
 ├── output/             # 渲染结果（gitignore）
 └── generate_all.py

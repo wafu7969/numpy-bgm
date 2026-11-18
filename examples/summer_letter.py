@@ -132,7 +132,7 @@ def main(out: Path) -> Path:
     air_bus = reverb(air.buf, dur=5.0, mix=0.48, damp=3600)
 
     mix = keys + lead_bus + air_bus + perc.buf * 0.85
-    return render(out / "01_summer_letter.wav", mix, fade=(0.02, 3.0))
+    return render(out / "02_summer_letter.wav", mix, fade=(0.02, 3.0))
 
 
 if __name__ == "__main__":

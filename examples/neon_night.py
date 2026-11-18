@@ -162,7 +162,7 @@ def main(out: Path) -> Path:
            + reverb(arp_bus.buf, dur=2.0, mix=0.25, damp=6000) * 0.9
            + reverb(lead_bus.buf, dur=2.4, mix=0.30, damp=5200)
            + reverb(air.buf, dur=3.5, mix=0.42, damp=3200))
-    return render(out / "02_neon_night.wav", mix, fade=(0.01, 2.0), drive=0.15)
+    return render(out / "03_neon_night.wav", mix, fade=(0.01, 2.0), drive=0.15)
 
 
 if __name__ == "__main__":
