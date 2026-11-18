@@ -10,7 +10,7 @@ from pathlib import Path
 
 from examples import (before_noise, celestial_echo, chinese_dream, hundred_birds,
                       midnight_radio, neon_night, orbit, summer_letter,
-                      toward_the_light)
+                      toward_the_light, war_drums)
 
 MODULES = [
     toward_the_light,
@@ -22,6 +22,7 @@ MODULES = [
     orbit,
     hundred_birds,
     celestial_echo,
+    war_drums,
 ]
 
 
