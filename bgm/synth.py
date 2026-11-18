@@ -371,6 +371,19 @@ def pan(audio: np.ndarray, p: float, sr: int = SR) -> np.ndarray:
     return np.stack([audio * np.cos(ang), audio * np.sin(ang)], axis=1)
 
 
+def swirl(audio: np.ndarray, rate: float = 0.25, depth: float = 0.9,
+          phase: float = 0.0, sr: int = SR) -> np.ndarray:
+    """自动声像：让声音以 rate 圈/秒 的速度在左右声道之间环绕。
+
+    depth 控制绕圈半径（0 居中，1 贴耳）；phase 用来让不同声部错开位置。
+    """
+    mono = audio if audio.ndim == 1 else np.asarray(audio).mean(axis=1)
+    t = np.arange(len(mono)) / sr
+    p = np.clip(depth, 0.0, 1.0) * np.sin(2 * np.pi * rate * t + phase)
+    ang = (p + 1.0) * np.pi / 4.0
+    return np.stack([mono * np.cos(ang), mono * np.sin(ang)], axis=1)
+
+
 class Track:
     """一条多轨时间线：把声音按秒“放”到对应位置，最后一次性写出。"""
 

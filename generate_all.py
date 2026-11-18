@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 from examples import (before_noise, chinese_dream, midnight_radio, neon_night,
-                      summer_letter, toward_the_light)
+                      orbit, summer_letter, toward_the_light)
 
 MODULES = [
     toward_the_light,
@@ -18,6 +18,7 @@ MODULES = [
     before_noise,
     chinese_dream,
     midnight_radio,
+    orbit,
 ]
 
 
