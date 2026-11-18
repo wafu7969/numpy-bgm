@@ -245,6 +245,77 @@ def lead(freq: float, dur: float, sr: int = SR, vel: float = 1.0) -> np.ndarray:
     return _fit(out * env, vel)
 
 
+def suona(freq: float, dur: float, sr: int = SR, vel: float = 1.0,
+          vib: float = 6.0, vib_depth: float = 0.016, flutter: float = 0.0,
+          slide_to: float | None = None, slide_time: float | None = None,
+          attack: float = 0.02) -> np.ndarray:
+    """唢呐：高次谐波 + 共振峰 + 簧片噪声。
+
+    vib / vib_depth 控制颤音，flutter 控制花舌（快速气声抖动），
+    slide_to 给出目标频率时可以做出滑音。
+    """
+    n = samples(dur, sr)
+    t = np.arange(n) / sr
+    f0 = float(freq)
+
+    if slide_to is None:
+        f = np.full(n, f0)
+    else:
+        st = slide_time if slide_time is not None else min(0.2, dur * 0.5)
+        k = np.clip(t / max(st, 1e-3), 0.0, 1.0)
+        f = f0 * (float(slide_to) / f0) ** (k ** 0.8)
+
+    vib_env = np.clip((t - 0.18) / 0.22, 0.0, 1.0)     # 颤音渐入，像人吹出来的
+    f = f * (1.0 + vib_depth * vib_env * np.sin(2 * np.pi * vib * t))
+    if flutter > 0:
+        f = f * (1.0 + 0.004 * np.sin(2 * np.pi * 24.0 * t))
+
+    ph = 2 * np.pi * np.cumsum(f) / sr
+    out = np.zeros(n)
+    for k in range(1, 13):
+        if f0 * k > sr * 0.45:
+            break
+        out += np.sin(k * ph) / k
+
+    out += 0.035 * np.random.default_rng(3).standard_normal(n)   # 簧片气息
+    out = highpass(out, 240, sr)
+    out += 0.40 * bandpass(out, 1200, 3800, sr)                  # 鼻音共振峰
+    if flutter > 0:
+        out *= 1.0 + flutter * 0.6 * np.sin(2 * np.pi * 21.0 * t)
+
+    out = np.tanh(out * 1.2)
+    env = adsr(dur, a=attack, d=0.1, s=0.86, r=min(0.4, dur * 0.45), curve=3.0)
+    return _fit(out * env, vel)
+
+
+def bird(freq: float = 1100.0, dur: float = 0.14, sr: int = SR,
+         rise: float = 1.6, vel: float = 1.0, seed: int = 0) -> np.ndarray:
+    """鸟鸣：快速上滑的短音 + 一点气声，用来做“百鸟”段落。"""
+    n = samples(dur, sr)
+    t = np.arange(n) / sr
+    f = float(freq) * (1.0 + (rise - 1.0) * (t / dur) ** 1.3)
+    ph = 2 * np.pi * np.cumsum(f) / sr
+    tone = np.sin(ph) + 0.35 * np.sin(2 * ph) + 0.15 * np.sin(3 * ph)
+    env = (t / dur) ** 0.4 * np.exp(-t / (dur * 0.55)) * (1.0 - (t / dur) ** 6)
+    noise = highpass(np.random.default_rng(seed).standard_normal(n), 3500, sr) * 0.18
+    return _fit((tone + noise) * env, vel)
+
+
+def gong(tune: float = 88.0, dur: float = 5.0, sr: int = SR, vel: float = 1.0) -> np.ndarray:
+    """锣：非谐波金属泛音 + 长衰减，段落起点用它压住场面。"""
+    t = timeline(dur, sr)
+    out = np.zeros_like(t)
+    for ratio, amp in ((1.0, 1.0), (1.51, 0.75), (2.03, 0.60), (2.74, 0.45),
+                       (3.61, 0.32), (4.72, 0.24), (6.10, 0.16)):
+        tau = dur * 0.45 / ratio ** 0.5
+        out += amp * np.sin(2 * np.pi * tune * ratio * t + 0.4 * ratio) * np.exp(-t / tau)
+    shimmer = highpass(np.random.default_rng(19).standard_normal(len(t)), 2500, sr)
+    out += shimmer * np.exp(-t / 0.35) * 0.35
+    a_n = min(samples(0.004, sr), len(t))
+    out[:a_n] *= np.linspace(0.0, 1.0, a_n)
+    return _fit(out, vel)
+
+
 # ------------------------------------------------------------------ 鼓组
 
 def kick(sr: int = SR, dur: float = 0.45, tune: float = 48, vel: float = 1.0) -> np.ndarray:

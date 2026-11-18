@@ -3,7 +3,7 @@
 只用 **numpy + 标准库** 写 BGM 的实验仓库。没有音源、没有采样包、没有 DAW，
 每一个音符都是逐样本算出来的。
 
-仓库里包含 7 首可以直接听的完整曲子（WAV/MP3）和生成它们的全部代码：
+仓库里包含 8 首可以直接听的完整曲子（WAV/MP3）和生成它们的全部代码：
 
 | # | 曲目 | 风格 | BPM | 调性 | 情绪 |
 |---|------|------|-----|------|------|
@@ -14,6 +14,7 @@
 | 05 | [山河入梦](demos/05_chinese_dream.mp3) | 中国风 | 68 | D 宫五声 | 远山、宣纸、留白 |
 | 06 | [深夜电台](demos/06_midnight_radio.mp3) | Lo-Fi Hip-Hop | 78 | C 大调 | 凌晨两点、台灯、日记 |
 | 07 | [星轨](demos/07_orbit.mp3) | 氛围电子 / 8D | 92 | E 小调 | 星空、环绕、旋转 |
+| 08 | [百鸟朝凤](demos/08_hundred_birds.mp3) | 唢呐 / 民乐 | 132 | D 宫五声 | 庆典、百鸟、震撼 |
 
 > GitHub 页面里点上面的文件名即可在线试听；`output/` 下是渲染出来的 44.1kHz/16bit WAV。
 
@@ -21,7 +22,7 @@
 
 ```bash
 pip install numpy          # 唯一的依赖
-python generate_all.py     # 一次渲染 7 首，输出到 output/
+python generate_all.py     # 一次渲染 8 首，输出到 output/
 ```
 
 单独渲染某一首：
@@ -34,6 +35,7 @@ python -m examples.before_noise
 python -m examples.chinese_dream
 python -m examples.midnight_radio
 python -m examples.orbit
+python -m examples.hundred_birds
 ```
 
 ## 目录结构
@@ -50,7 +52,8 @@ numpy-bgm/
 │   ├── before_noise.py      # 04 氛围
 │   ├── chinese_dream.py     # 05 中国风
 │   ├── midnight_radio.py    # 06 Lo-Fi
-│   └── orbit.py             # 07 左右环绕
+│   ├── orbit.py             # 07 左右环绕
+│   └── hundred_birds.py     # 08 唢呐 / 民乐
 ├── demos/              # 试听用的 MP3
 ├── output/             # 渲染结果（gitignore）
 └── generate_all.py
@@ -84,7 +87,7 @@ write_wav("first.wav", master(buf))   # 母带并导出
 1. **采样**：所有声音都是一条长度为 `秒数 × 44100` 的 float 数组。
 2. **波形**：`osc()` 用叠加谐波的方式生成正弦 / 锯齿 / 方波 / 三角波，并按奈奎斯特频率截断，避免混叠。
 3. **包络**：`adsr()` 决定声音怎么出现、怎么消失——这是“像乐器”的关键。
-4. **音色**：`piano()` 叠加衰减谐波，`ep()` 用两算子 FM 做 Rhodes，`pluck()` 用高次谐波快速衰减模仿拨弦，`pad()` 是多个失谐锯齿再低通。
+4. **音色**：`piano()` 叠加衰减谐波，`ep()` 用两算子 FM 做 Rhodes，`pluck()` 用高次谐波快速衰减模仿拨弦，`pad()` 是多个失谐锯齿再低通；`suona()` 在高次谐波上叠加共振峰，`gong()` 用非谐波金属泛音做锣，`bird()` 用上滑短音模仿鸟叫。
 5. **滤波**：`lowpass / highpass / bandpass` 全部用 FFT 实现，零相位、无逐样本循环，几十秒音频也是毫秒级。
 6. **空间**：`reverb()` 用指数衰减噪声当脉冲响应做卷积混响，`echo()` 是多抽头延迟，`swirl()` 让声部按指定速度在左右声道之间环绕（即常见的"8D"效果）。
 7. **编排**：`Track` 是一条时间线，`track.add(声音, at=秒)` 把音符放到任意位置，最后一次性导出。
