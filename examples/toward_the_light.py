@@ -17,7 +17,7 @@ BPM = 104
 BEAT = 60.0 / BPM
 BAR = 4 * BEAT
 BARS = 24
-DUR = BARS * BAR + 3.5
+DUR = BARS * BAR + 5.0
 
 VOICING = {
     "D": [50, 57, 62, 66],
@@ -149,9 +149,9 @@ def main(out: Path) -> Path:
     for bar, beat, dur in ((7, 2, 2.0), (11, 2, 2.0), (19, 2, 2.0)):
         air.add(swell(dur), at(bar, beat), gain=0.16)
 
-    # ---------- 收尾
+    # ---------- 收尾（第 24 小节回到 D 主和弦）
     for j, m in enumerate([38, 50, 57, 62, 66, 69]):
-        keys.add(piano(hz(m), 6.5), at(22) + j * 0.04, gain=0.13, pan_=-0.1)
+        keys.add(piano(hz(m), 6.5), at(23) + j * 0.04, gain=0.13, pan_=-0.1)
     lead.add(bell(hz(86), 5.0), at(23, 0.1), gain=0.10, pan_=0.3)
 
     # ---------- 总线
@@ -160,7 +160,7 @@ def main(out: Path) -> Path:
     air_bus = reverb(air.buf, dur=4.5, mix=0.45, damp=3400)
 
     mix = piano_bus + lead_bus + air_bus + drums.buf * 0.95
-    return render(out / "01_toward_the_light.wav", mix, fade=(0.02, 2.6))
+    return render(out / "01_toward_the_light.wav", mix, fade=(0.02, 3.0))
 
 
 if __name__ == "__main__":
