@@ -3,7 +3,7 @@
 只用 **numpy + 标准库** 写 BGM 的实验仓库。没有音源、没有采样包、没有 DAW，
 每一个音符都是逐样本算出来的。
 
-仓库里包含 10 首可以直接听的完整曲子（WAV/MP3）和生成它们的全部代码：
+仓库里包含 10 首可以直接听的 BGM，以及一段 28 种音效与配音的展示，和生成它们的全部代码：
 
 | # | 曲目 | 风格 | BPM | 调性 | 情绪 |
 |---|------|------|-----|------|------|
@@ -17,6 +17,7 @@
 | 08 | [百鸟朝凤](demos/08_hundred_birds.mp3) | 唢呐 / 民乐 | 132 | D 宫五声 | 庆典、百鸟、震撼 |
 | 09 | [天宫迅音（致敬）](demos/09_celestial_echo.mp3) | 电子合成 / 民乐 | 128 | A 小调 | 云海、天门、腾云 |
 | 10 | [战鼓](demos/10_war_drums.mp3) | 打击乐 / 战鼓 | 116 | D 小调 | 鼓声逼近、热血、开场 |
+| 11 | [音效合集](demos/11_sfx_showcase.mp3) | 音效 / 配音 | — | — | 28 种声音逐个展示 |
 
 > GitHub 页面里点上面的文件名即可在线试听；`output/` 下是渲染出来的 44.1kHz/16bit WAV。
 
@@ -24,7 +25,7 @@
 
 ```bash
 pip install numpy          # 唯一的依赖
-python generate_all.py     # 一次渲染 10 首，输出到 output/
+python generate_all.py     # 一次渲染全部 11 段音频，输出到 output/
 ```
 
 单独渲染某一首：
@@ -40,6 +41,7 @@ python -m examples.orbit
 python -m examples.hundred_birds
 python -m examples.celestial_echo
 python -m examples.war_drums
+python -m examples.sfx_showcase
 ```
 
 ## 目录结构
@@ -59,7 +61,8 @@ numpy-bgm/
 │   ├── orbit.py             # 07 左右环绕
 │   ├── hundred_birds.py     # 08 唢呐 / 民乐
 │   ├── celestial_echo.py    # 09 电子合成 / 民乐
-│   └── war_drums.py         # 10 打击乐 / 战鼓
+│   ├── war_drums.py         # 10 打击乐 / 战鼓
+│   └── sfx_showcase.py      # 11 音效 / 配音
 ├── demos/              # 试听用的 MP3
 ├── output/             # 渲染结果（gitignore）
 └── generate_all.py
