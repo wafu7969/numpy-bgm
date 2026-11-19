@@ -1,74 +1,86 @@
-"""示例 3 · 白噪音之前 —— 60 BPM 的自由速度，D♭ 大调。
+"""示例 4 · 白噪音之前 —— 氛围环境音，无明显 BPM。
 
-情绪：清晨、空房间、还没开始的一天。没有鼓，只有长音量的铺底、
-一个持续的低音和几颗很远的钟。
+情绪：早上六点，房间还没醒。
+没有鼓，没有清晰的旋律。极慢的低通合成器 Pad 模拟天光渐亮。
+深沉的持续低频（Drone）像大楼的呼吸。
+偶尔传来的几声清脆金属声（像远处的风铃或风吹过的窗框）。
+环境里充满了房间底噪（Room Tone）和轻微的低频隆隆声。
 """
 
 from pathlib import Path
-
 import numpy as np
 
 from bgm import hz, render
-from bgm.synth import SR, Track, bell, highpass, lowpass, osc, pad, reverb, samples, timeline
+from bgm.synth import (SR, Track, bell, highpass, lowpass, pad, reverb, samples, timeline)
 
-SECTION = 10.0
-SECTIONS = 6
-DUR = SECTION * SECTIONS + 6.0
+# 总长 60 秒
+DUR = 60.0
 
-PADS = [
-    [49, 56, 60, 63, 68],
-    [46, 53, 56, 61, 65],
-    [42, 49, 53, 58, 61],
-    [44, 46, 51, 56, 63],
-    [49, 53, 56, 60, 63],
-    [49, 56, 60, 63, 68],
+# 极简的和声进行（只有根音、五音和九音，避免色彩过于浓烈），换得很慢
+CHORDS = [
+    (0.0,  [37, 44, 49]), # Db2, Ab2, Db3
+    (15.0, [39, 46, 51]), # Eb2, Bb2, Eb3
+    (30.0, [42, 49, 54]), # Gb2, Db3, Gb3
+    (45.0, [37, 44, 49]), # 回到 Db2
 ]
 
-# (进入时间, midi)：D♭ 大调五声音阶上的散点
+# 散落的金属风铃声 (时间, MIDI)
 BELLS = [
-    (4.0, 73), (7.5, 68), (12.0, 75), (17.0, 77), (22.0, 73), (27.0, 70),
-    (32.0, 75), (37.0, 80), (42.0, 77), (47.0, 73), (52.0, 75), (57.0, 68),
+    (8.2, 73), (11.5, 80), (14.0, 75),
+    (24.3, 77), (28.1, 75), 
+    (36.5, 82), (39.0, 85), (42.2, 80),
+    (52.1, 73), (56.0, 68)
 ]
 
+def room_tone(dur: float) -> np.ndarray:
+    """模拟绝对安静房间里空气的流动底噪"""
+    t = timeline(dur)
+    noise = np.random.default_rng(99).standard_normal(len(t))
+    # 极低频的建筑物/管道共振 (Rumble)
+    rumble = lowpass(noise, 60) * 0.4
+    # 空气嘶沙声
+    hiss = lowpass(highpass(noise, 800), 3000) * 0.05
+    # 呼吸感包络
+    breath = 0.7 + 0.3 * np.sin(2 * np.pi * 0.04 * t)
+    return (rumble + hiss) * breath
 
 def main(out: Path) -> Path:
     pads = Track(DUR)
-    drone = Track(DUR)
     bells = Track(DUR)
-    air = Track(DUR)
+    env = Track(DUR)
 
-    # ---------- 铺底：每 10 秒换一次和声，长起音 + 长释放，靠重叠融合
-    for i, notes in enumerate(PADS):
-        start = i * SECTION
+    # ---------- 1. 房间底噪 (Room Tone)
+    env.add(room_tone(DUR), 0.0, gain=0.6, pan_=0.0)
+
+    # ---------- 2. 像天光一样的极慢 Pad
+    for i, (start_time, notes) in enumerate(CHORDS):
+        # 每一段长达 18 秒，与下一段交叠
+        section_dur = 18.0
+        # 随着时间推移，低通滤波器（天光）慢慢打开
+        progress = start_time / DUR
+        cutoff = 200 + 400 * progress 
+        
         for j, m in enumerate(notes):
-            pads.add(pad(hz(m), SECTION * 1.35, voices=3, detune=0.0055,
-                         cutoff=900, attack=2.4),
-                     start, gain=0.055, pan_=(-0.5 + 0.25 * j))
+            # 极长的 Attack 和 Release，像雾气一样涌入涌出
+            p = pad(hz(m), section_dur, voices=2, detune=0.003, cutoff=cutoff, attack=4.0)
+            pads.add(p, start_time, gain=0.12, pan_=(-0.3 + 0.3 * j))
 
-    # ---------- 持续低音：D♭2 + A♭2，带极慢的呼吸
-    n = samples(SECTION * SECTIONS, SR)
-    t = timeline(SECTION * SECTIONS, SR)
-    breath = 0.55 + 0.45 * np.sin(2 * np.pi * 0.035 * t - 1.2) ** 2
-    for m, level in ((37, 0.20), (44, 0.11)):
-        drone.add(osc("sine", hz(m), SECTION * SECTIONS, SR) * breath, 0.0, gain=level)
-
-    # ---------- 空气：被切掉低频的噪声，随和声一起起伏
-    noise = np.random.default_rng(7).standard_normal(n)
-    noise = lowpass(highpass(noise, 400, SR), 2400, SR)
-    noise *= 0.5 + 0.5 * np.sin(2 * np.pi * 0.05 * t)
-    air.add(noise, 0.0, gain=0.018, pan_=0.0)
-
-    # ---------- 钟：稀疏、远、每个都带长混响
+    # ---------- 3. 远处的金属风铃 (Bells)
     for start, m in BELLS:
-        bells.add(bell(hz(m), 6.5), start, gain=0.16, pan_=(-0.4 if m % 2 else 0.4))
+        # 风铃声不需要很长，但要有清脆感
+        b = bell(hz(m), 3.0)
+        bells.add(b, start, gain=0.1, pan_=(-0.4 if m % 2 == 0 else 0.4))
 
-    # ---------- 总线：氛围曲的混响给得很大方
-    mix = (reverb(pads.buf, dur=6.0, mix=0.55, damp=3000)
-           + drone.buf * 0.9
-           + reverb(bells.buf, dur=7.0, mix=0.60, damp=4200)
-           + air.buf)
-    return render(out / "04_before_noise.wav", mix, fade=(0.5, 4.0))
-
+    # ---------- 4. 混音总线
+    # 氛围音乐（Ambient）需要极大、极宽的空间混响
+    pad_bus = reverb(pads.buf, dur=8.0, mix=0.6, damp=2000)
+    bell_bus = reverb(bells.buf, dur=5.0, mix=0.4, damp=6000)
+    
+    # 混合，再整体切掉一点刺耳的高频，保持清晨的柔和
+    mix = pad_bus + bell_bus + env.buf
+    mix = lowpass(mix, 8000)
+    
+    return render(out / "04_before_noise.wav", mix, fade=(2.0, 5.0))
 
 if __name__ == "__main__":
     main(Path(__file__).resolve().parents[1] / "output")
