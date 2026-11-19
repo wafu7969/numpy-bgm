@@ -21,7 +21,6 @@ MODULE_NAMES = [
     "09_cyber_city",
     "10_war_drums",
     "11_sfx_showcase",
-    "12_vocal_choir",
 ]
 
 def main() -> None:
