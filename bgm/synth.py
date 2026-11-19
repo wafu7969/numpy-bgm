@@ -388,6 +388,28 @@ def crash(sr: int = SR, dur: float = 1.8, vel: float = 1.0, seed: int = 17) -> n
     return _fit(noise * env, vel)
 
 
+def taiko(tune: float = 73.0, dur: float = 1.6, sr: int = SR, decay: float = 0.7,
+          skin: float = 0.45, vel: float = 1.0, seed: int = 0) -> np.ndarray:
+    """战鼓 / 太鼓：低频鼓腔 + 皮面噪声 + 第二只鼓的轻微失谐。
+
+    和底鼓不同，它的衰减长、泛音多，几只叠在一起会有“鼓阵”的厚度。
+    """
+    t = timeline(dur, sr)
+    f = tune * (1.0 + 0.5 * np.exp(-t / 0.045))
+    ph = phase(f, dur, sr)
+
+    body = np.sin(ph) * np.exp(-t / decay)
+    body += 0.28 * np.sin(2 * ph) * np.exp(-t / (decay * 0.55))
+    body += 0.12 * np.sin(3 * ph) * np.exp(-t / (decay * 0.35))
+    det = np.sin(phase(f * 1.006, dur, sr)) * np.exp(-t / (decay * 0.92))
+
+    skin_noise = bandpass(np.random.default_rng(seed).standard_normal(len(t)),
+                          180, 2000, sr)
+    skin_noise *= np.exp(-t / 0.055)
+
+    return _fit(body + 0.55 * det + skin * skin_noise, vel)
+
+
 # ------------------------------------------------------------------ 空间与混音
 
 def _convolve(x: np.ndarray, ir: np.ndarray) -> np.ndarray:
