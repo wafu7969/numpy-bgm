@@ -1,8 +1,8 @@
 """示例 10 · 战鼓 —— 116 BPM，D 小调。
 
-写法刻意避开架子鼓的语法：没有四拍底鼓、没有军鼓反拍、没有连续踩镲。
-大鼓、中鼓、小鼓按 D–G–D 调音，用轮流呼应、齐奏、鼓边与滚奏推进，
-像一支鼓队从远处走近，而不是一个人在打鼓。
+情绪：大鼓与排鼓层层叠加，像鼓声从远处逼近，适合开场、运动、宣传片。
+通过空间混响的干湿比调整、低通滤波的逐渐打开，以及各频段鼓组的依次加入，
+营造出极其明显的“从远到近”、“从小到大”的逼近感与压迫感。
 """
 
 from pathlib import Path
@@ -10,18 +10,18 @@ from pathlib import Path
 import numpy as np
 
 from bgm import hz, render
-from bgm.synth import (Track, bandpass, crash, gong, lowpass, pad, reverb, swirl,
+from bgm.synth import (SR, Track, bandpass, crash, gong, lowpass, pad, reverb, swirl,
                        taiko, timeline)
 
 BPM = 116
 BEAT = 60.0 / BPM
 BAR = 4 * BEAT
-BARS = 28
-DUR = BARS * BAR + 4.5
+BARS = 32
+DUR = BARS * BAR + 6.0
 
 # 三面鼓按 D–G–D 调音，形成低、中、高三个声部
-TUNE = {"big": 73.0, "mid": 98.0, "high": 147.0}
-DECAY = {"big": 0.95, "mid": 0.6, "high": 0.35}
+TUNE = {"big": 50.0, "mid": 75.0, "high": 112.0}
+DECAY = {"big": 1.2, "mid": 0.8, "high": 0.4}
 
 CHORDS = {
     "Dm": [50, 57, 62],
@@ -29,16 +29,7 @@ CHORDS = {
     "F": [41, 48, 53],
     "C": [48, 55, 60],
 }
-PROGRESSION = ["Dm", "Bb", "F", "C"] * 7
-
-# 主节奏：三面鼓轮流说话，重音在 1、2.75、3.5
-MAIN = [
-    (0.00, "big", 0.72), (0.75, "mid", 0.34), (1.25, "high", 0.24),
-    (1.50, "big", 0.52), (2.00, "big", 0.62), (2.75, "mid", 0.36),
-    (3.00, "high", 0.26), (3.50, "big", 0.48),
-]
-RIM = [(1.00, 0.12), (3.00, 0.10)]
-
+PROGRESSION = ["Dm", "Bb", "F", "C"] * 8
 
 def main(out: Path) -> Path:
     drums = Track(DUR)
@@ -47,109 +38,125 @@ def main(out: Path) -> Path:
     def at(bar: int, beat: float = 0.0) -> float:
         return bar * BAR + beat * BEAT
 
-    def hit(kind: str, bar: int, beat: float, gain: float, pan_: float = 0.0) -> None:
-        drums.add(taiko(TUNE[kind], dur=DECAY[kind] * 3.2, decay=DECAY[kind],
-                        skin=0.5 if kind == "big" else 0.4,
-                        seed=int(bar * 20 + beat * 7)),
-                  at(bar, beat), gain=gain, pan_=pan_)
+    def hit(kind: str, bar: int, beat: float, gain: float, pan_: float = 0.0, lpf: float = 20000) -> None:
+        note = taiko(TUNE[kind], dur=DECAY[kind] * 3.2, decay=DECAY[kind],
+                     skin=0.5 if kind == "big" else 0.4,
+                     seed=int(bar * 20 + beat * 7))
+        if lpf < 20000:
+            note = lowpass(note, lpf)
+        drums.add(note, at(bar, beat), gain=gain, pan_=pan_)
 
-    def rim(bar: int, beat: float, gain: float) -> None:
+    def rim(bar: int, beat: float, gain: float, lpf: float = 20000) -> None:
         t = timeline(0.10)
         noise = bandpass(np.random.default_rng(int(bar * 17 + beat * 11)).standard_normal(len(t)),
                          700, 3500)
         click = np.sin(2 * np.pi * 1250 * t) * np.exp(-t / 0.012)
         wood = (click + 0.7 * noise * np.exp(-t / 0.006))
-        drums.add(wood / (np.max(np.abs(wood)) + 1e-9), at(bar, beat),
-                  gain=gain, pan_=0.35)
+        wood = wood / (np.max(np.abs(wood)) + 1e-9)
+        if lpf < 20000:
+            wood = lowpass(wood, lpf)
+        drums.add(wood, at(bar, beat), gain=gain, pan_=0.35)
 
     def roll(bar: int, start: float, step: float, count: int, gain0: float,
-             gain1: float, kind: str = "big") -> None:
+             gain1: float, kind: str = "big", lpf: float = 20000) -> None:
         for k in range(count):
             g = gain0 + (gain1 - gain0) * k / max(count - 1, 1)
-            hit(kind, bar, start + k * step, g, pan_=-0.15 + 0.3 * (k % 2))
+            hit(kind, bar, start + k * step, g, pan_=-0.15 + 0.3 * (k % 2), lpf=lpf)
 
-    # ---------- 前奏：一只大鼓、一面锣，鼓边偶尔回应
-    drums.add(gong(tune=68, dur=7.0), 0.0, gain=0.34, pan_=0.0)
-    for bar in range(0, 4):
-        hit("big", bar, 0.0, 0.75)
-        hit("big", bar, 2.0, 0.55)
-        rim(bar, 3.5, 0.16)
-        if bar >= 2:
-            hit("mid", bar, 1.5, 0.26, pan_=-0.2)
-            hit("high", bar, 3.25, 0.18, pan_=0.25)
+    # 核心设计：随着小节推进，逐渐拉大音量并打开低通滤波器，制造“逼近感”
+    # Stage 1: 0-7 (远处的沉闷)
+    # Stage 2: 8-15 (中距离的行进)
+    # Stage 3: 16-23 (近在咫尺)
+    # Stage 4: 24-31 (贴脸爆发)
+    
+    for bar in range(BARS):
+        # 动态计算当前的距离感参数
+        progress = bar / BARS
+        lpf_freq = 400 + 8000 * (progress ** 1.5)  # 频段从极其沉闷到打开
+        vol_scale = 0.3 + 0.7 * (progress ** 1.2)  # 音量从远到近
+        
+        # 基础节奏框架
+        # 大鼓底盘
+        hit("big", bar, 0.0, 0.8 * vol_scale, lpf=lpf_freq)
+        hit("big", bar, 2.0, 0.6 * vol_scale, lpf=lpf_freq)
+        
+        if bar >= 4:
+            # 鼓边加入
+            rim(bar, 1.0, 0.12 * vol_scale, lpf=lpf_freq)
+            rim(bar, 3.0, 0.12 * vol_scale, lpf=lpf_freq)
 
-    # ---------- 主段：鼓队进入
-    for bar in range(4, 12):
-        for beat, kind, gain in MAIN:
-            hit(kind, bar, beat, gain, pan_=-0.2 if kind == "mid" else 0.2)
-        for beat, gain in RIM:
-            rim(bar, beat, gain)
-        if bar in (7, 11):
-            roll(bar, 2.0, 0.25, 8, 0.20, 0.55)
+        if bar >= 8:
+            # 中高鼓组加入，形成行军节奏
+            hit("mid", bar, 0.75, 0.4 * vol_scale, pan_=-0.2, lpf=lpf_freq)
+            hit("high", bar, 1.25, 0.3 * vol_scale, pan_=0.2, lpf=lpf_freq)
+            hit("mid", bar, 2.75, 0.4 * vol_scale, pan_=-0.2, lpf=lpf_freq)
+            hit("high", bar, 3.25, 0.3 * vol_scale, pan_=0.2, lpf=lpf_freq)
+            
+            # 过门滚奏
+            if bar % 4 == 3:
+                roll(bar, 3.0, 0.25, 4, 0.3 * vol_scale, 0.6 * vol_scale, "mid", lpf=lpf_freq)
 
-    # ---------- 高潮：齐奏、鼓边加密、滚奏
-    for bar in range(12, 20):
-        hit("big", bar, 0.0, 0.80)
-        hit("mid", bar, 0.0, 0.40)
-        hit("high", bar, 0.0, 0.26)
-        for beat, kind, gain in MAIN[1:]:
-            hit(kind, bar, beat, gain * 1.05,
-                pan_=-0.22 if kind == "mid" else 0.22)
-        for beat, gain in RIM:
-            rim(bar, beat, gain + 0.04)
-        for k in range(8):
-            rim(bar, 1.75 + k * 0.25, 0.05 + 0.006 * k)
-        if bar in (13, 15, 17, 19):
-            roll(bar, 3.0, 0.25, 4, 0.28, 0.52, "mid")
-        if bar % 4 == 0:
-            drums.add(crash(dur=1.4), at(bar), gain=0.10)
-            drums.add(gong(tune=78, dur=6.0), at(bar), gain=0.24)
+        if bar >= 16:
+            # 节奏加密，层层叠加
+            hit("big", bar, 1.5, 0.5 * vol_scale, lpf=lpf_freq)
+            hit("big", bar, 3.5, 0.5 * vol_scale, lpf=lpf_freq)
+            for k in range(4):
+                rim(bar, 1.75 + k * 0.25, (0.05 + 0.01 * k) * vol_scale, lpf=lpf_freq)
+                
+            if bar % 4 == 0:
+                drums.add(crash(dur=1.4), at(bar), gain=0.1 * vol_scale)
+                drums.add(gong(tune=68, dur=6.0), at(bar), gain=0.3 * vol_scale, pan_=0.0)
 
-    # ---------- 间奏：只留大鼓与鼓边，重新蓄力
-    for bar in range(20, 24):
-        hit("big", bar, 0.0, 0.62)
-        hit("big", bar, 2.0, 0.48)
-        rim(bar, 1.0, 0.14)
-        rim(bar, 3.0, 0.12)
-        if bar >= 22:
-            roll(bar, 2.0, 0.25, 8, 0.18, 0.45, "mid")
-    roll(23, 2.0, 0.125, 16, 0.16, 0.60)
+        if bar >= 24:
+            # 贴脸的高潮，全编制齐奏
+            hit("mid", bar, 0.0, 0.5 * vol_scale, pan_=-0.1, lpf=lpf_freq)
+            hit("high", bar, 0.0, 0.4 * vol_scale, pan_=0.1, lpf=lpf_freq)
+            
+            # 持续的低音轰炸
+            roll(bar, 2.5, 0.25, 6, 0.4 * vol_scale, 0.8 * vol_scale, "big", lpf=lpf_freq)
 
-    # ---------- 收尾：三下齐奏，一整小节滚奏，最后一声大鼓
-    for bar in (24, 25):
-        for kind, gain in (("big", 0.85), ("mid", 0.42), ("high", 0.26)):
-            hit(kind, bar, 0.0, gain)
-            hit(kind, bar, 2.0, gain * 0.75)
-        rim(bar, 1.0, 0.16)
-        rim(bar, 3.5, 0.14)
-    roll(26, 0.0, 0.125, 16, 0.20, 0.65)
-    roll(26, 2.0, 0.125, 16, 0.30, 0.85)
-    drums.add(crash(dur=2.6), at(27), gain=0.20)
-    drums.add(gong(tune=66, dur=8.0), at(27), gain=0.36)
-    hit("big", 27, 0.0, 0.9)
-    hit("mid", 27, 0.0, 0.45)
-    hit("high", 27, 0.0, 0.30)
+    # ---------- 最后的终结一击
+    drums.add(crash(dur=3.0), at(BARS), gain=0.25)
+    drums.add(gong(tune=55, dur=10.0), at(BARS), gain=0.45)
+    hit("big", BARS, 0.0, 1.0)
+    hit("mid", BARS, 0.0, 0.6)
+    hit("high", BARS, 0.0, 0.4)
+    # 余震滚奏
+    roll(BARS, 0.5, 0.25, 8, 0.8, 0.1, "big")
 
-    # ---------- 低音与铺底：只做底盘，不抢鼓
+    # ---------- 铺底：烘托气势的暗流
     n = int(DUR * 44100)
     t = np.arange(n) / 44100
     breath = 0.6 + 0.4 * np.sin(2 * np.pi * 0.06 * t - 1.1)
+    
+    # 极低的轰鸣音
     for m, level in ((38, 0.12), (45, 0.06)):
         air.add(np.sin(2 * np.pi * hz(m) * t) * breath, 0.0, gain=level)
+        
     for bar, name in enumerate(PROGRESSION):
-        if bar < 4:
+        if bar < 8:
             continue
+        vol_scale = min(1.0, (bar - 8) / 16.0)
         for m in CHORDS[name]:
             air.add(pad(hz(m - 12), BAR * 1.15, voices=2, detune=0.004,
-                        cutoff=480, attack=0.5),
-                    at(bar), gain=0.028)
+                        cutoff=400 + 400 * vol_scale, attack=0.5),
+                    at(bar), gain=0.035 * vol_scale)
 
-    # ---------- 总线
+    # ---------- 总线：混响的距离感设计
     pads = swirl(air.buf.mean(axis=1), rate=0.05, depth=0.4)
-    mix = (reverb(drums.buf, dur=2.4, mix=0.20, damp=4200)
-           + reverb(pads, dur=4.0, mix=0.35, damp=2600))
+    
+    # 将鼓组拆分为干湿声，通过时间线逐渐减小湿声比例（越来越近）
+    t_env = np.linspace(0.0, 1.0, len(drums.buf))[:, None]
+    reverb_mix = 0.4 - 0.25 * t_env  # 混响比例从 40% (极远) 降到 15% (极近)
+    
+    wet_drums = reverb(drums.buf, dur=3.5, mix=1.0, damp=3000)
+    mixed_drums = drums.buf * (1.0 - reverb_mix) + wet_drums * reverb_mix
+    
+    mix = mixed_drums + reverb(pads, dur=4.0, mix=0.4, damp=2600)
     mix = lowpass(mix, 14000)
-    return render(out / "10_war_drums.wav", mix, fade=(0.01, 2.2), drive=0.20)
+    
+    # 增加过载(drive)让结尾的鼓声更加暴力
+    return render(out / "10_war_drums.wav", mix, fade=(0.01, 4.0), drive=0.35)
 
 
 if __name__ == "__main__":
