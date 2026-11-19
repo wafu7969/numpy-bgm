@@ -1,139 +1,133 @@
-"""示例 1 · 夏日信笺 —— 76 BPM，C 大调。
+"""示例 2 · 夏日信笺 —— 62 BPM，C 大调。
 
-情绪：午后、信纸、慢镜头。钢琴分解和弦开场，旋律进来后加弦垫与
-极轻的沙锤，最后停在主和弦上。
+情绪：下午四点的教室，风扇停了，有人在写信。
+极度克制的独奏钢琴，搭配环境音（逐渐停下的风扇声与偶尔的铅笔沙沙声）。
+没有打击乐，没有华丽的合成器，只有琴键和纸笔的对话。
 """
 
 from pathlib import Path
-
 import numpy as np
 
 from bgm import hz, render
-from bgm.synth import (Track, bell, echo, kick, pad, piano, reverb, shaker)
+from bgm.synth import (SR, Track, bandpass, lowpass, piano, reverb, timeline)
 
-BPM = 76
+BPM = 62
 BEAT = 60.0 / BPM
 BAR = 4 * BEAT
 BARS = 16
 DUR = BARS * BAR + 4.0
 
 VOICING = {
-    "C": [48, 55, 60, 64],
-    "G/B": [47, 55, 59, 62],
-    "Am": [45, 52, 57, 60, 64],
-    "F": [41, 53, 57, 60, 65],
-    "G": [43, 55, 59, 62],
-    "Em": [40, 52, 55, 59, 64],
+    "Fmaj7": [41, 57, 60, 65],
+    "Em7":   [40, 55, 59, 62],
+    "Dm7":   [38, 53, 57, 60],
+    "Cmaj7": [36, 52, 55, 59],
 }
-PAD = {
-    "C": [48, 55, 64],
-    "G/B": [47, 55, 62],
-    "Am": [45, 52, 60],
-    "F": [41, 53, 60],
-    "G": [43, 55, 62],
-    "Em": [40, 52, 59],
-}
-BASS = {"C": "C2", "G/B": "B1", "Am": "A2", "F": "F2", "G": "G2", "Em": "E2"}
 
-PROGRESSION = ["C", "G/B", "Am", "F", "C", "G", "Am", "F",
-               "F", "G", "Em", "Am", "F", "G", "C", "C"]
+PROGRESSION = ["Fmaj7", "Em7", "Dm7", "Cmaj7"] * 4
 
-# 每个元素是 (小节内第几拍, 时值, midi)，从第 5 小节开始
 MELODY = [
-    [(0, 1, 67), (1, .5, 69), (1.5, 1.5, 72), (3, .5, 76), (3.5, .5, 74)],
-    [(0, 1.5, 74), (1.5, .5, 71), (2, 1, 67), (3, .5, 71), (3.5, .5, 74)],
-    [(0, 1, 72), (1, 1, 76), (2, .5, 74), (2.5, .5, 72), (3, 1, 69)],
-    [(0, 1.5, 69), (1.5, .5, 72), (2, 1.5, 77), (3.5, .5, 76)],
-    [(0, 1, 77), (1, .5, 76), (1.5, .5, 74), (2, 1, 72), (3, 1, 69)],
-    [(0, 1, 71), (1, 1, 74), (2, 1.5, 79), (3.5, .5, 77)],
-    [(0, 1, 76), (1, .5, 74), (1.5, .5, 71), (2, 2, 67)],
-    [(0, 1, 72), (1, .5, 71), (1.5, .5, 69), (2, 2, 64)],
-    [(0, 1, 69), (1, .5, 72), (1.5, .5, 77), (2, 1, 76), (3, 1, 74)],
-    [(0, 1.5, 74), (1.5, .5, 71), (2, 1, 74), (3, 1, 79)],
-    [(0, 1, 76), (1, 1, 79), (2, 1, 76), (3, 1, 74)],
-    [(0, 2, 72), (2, .5, 71), (2.5, .5, 69), (3, 1, 72)],
-]
-FINAL = [(0, 2, 76), (2, 2, 72)]
+    # 第一段 (Bar 0-3)
+    [(0, 1.5, 69), (1.5, 0.5, 72), (2, 2, 76)],
+    [(0, 2, 74), (2.5, 0.5, 72), (3, 1, 71)],
+    [(0, 1.5, 69), (1.5, 0.5, 65), (2, 2, 69)],
+    [(0, 4, 67)],
 
+    # 第二段 (Bar 4-7)
+    [(0, 1.5, 69), (1.5, 0.5, 72), (2, 2, 76)],
+    [(0, 2, 79), (2.5, 0.5, 77), (3, 1, 76)],
+    [(0, 1.5, 74), (1.5, 0.5, 72), (2, 2, 74)],
+    [(0, 4, 72)],
+
+    # 第三段 (Bar 8-11) (情绪微起)
+    [(0, 1.5, 81), (1.5, 0.5, 84), (2, 2, 81)],
+    [(0, 2, 79), (2, 1, 76), (3, 1, 74)],
+    [(0, 1.5, 77), (1.5, 0.5, 76), (2, 2, 74)],
+    [(0, 4, 72)],
+    
+    # 第四段 (Bar 12-15) (渐弱收尾)
+    [(0, 2, 69), (2.5, 0.5, 72), (3, 1, 76)],
+    [(0, 2, 74), (2, 2, 71)],
+    [(0, 2, 69), (2, 2, 65)],
+    [(0, 4, 60)],
+]
+
+def fan_stopping(dur: float) -> np.ndarray:
+    """模拟老旧吊扇慢慢停下的声音"""
+    t = timeline(dur)
+    f = 15 * np.exp(-t / 3.0)  # 转速逐渐变慢
+    amp = np.exp(-t / 4.0)     # 音量逐渐消失
+    
+    noise = np.random.default_rng(42).standard_normal(len(t))
+    # 风声呼啸随转速变化
+    blade = lowpass(noise, 400) * (0.5 + 0.5 * np.sin(2 * np.pi * np.cumsum(f) / SR))
+    
+    return blade * amp * 0.15
+
+def pencil_scratch(dur: float, seed: int) -> np.ndarray:
+    """模拟铅笔在纸上写字的沙沙声"""
+    t = timeline(dur)
+    rng = np.random.default_rng(seed)
+    noise = rng.standard_normal(len(t))
+    
+    scratch = bandpass(noise, 1500, 4500)
+    # 模拟书写的顿挫感
+    strokes = np.sin(2 * np.pi * rng.uniform(3, 6) * t) ** 2
+    env = strokes * np.exp(-t / (dur * 0.6))
+    return scratch * env * 0.06
 
 def main(out: Path) -> Path:
-    comp = Track(DUR)    # 钢琴伴奏
-    lead = Track(DUR)    # 钢琴旋律
-    low = Track(DUR)     # 低音
-    air = Track(DUR)     # 弦垫
-    perc = Track(DUR)    # 沙锤与轻鼓
+    keys = Track(DUR)
+    env = Track(DUR)
 
     def at(bar: int, beat: float = 0.0) -> float:
         return bar * BAR + beat * BEAT
 
-    # ---------- 钢琴：前四小节分解和弦，之后柱式 + 偶尔高音点缀
+    # ---------- 1. 环境音 (Ambience)
+    # 歌曲开头：风扇慢慢停下
+    env.add(fan_stopping(BAR * 3), at(0, 0), pan_=0.0)
+    
+    # 偶尔出现的写字声，填补旋律的空白
+    write_points = [
+        (3, 1.0, 2.0), (7, 1.5, 1.5), (11, 2.0, 1.5), (15, 1.0, 3.0)
+    ]
+    for i, (bar, beat, dur) in enumerate(write_points):
+        env.add(pencil_scratch(dur * BEAT, seed=10+i), at(bar, beat), pan_=0.2)
+
+    # ---------- 2. 钢琴伴奏 (Accompaniment)
     for bar, name in enumerate(PROGRESSION):
         notes = VOICING[name]
-        if bar < 4:
-            pattern = [0, 1, 2, 3, 2, 1, 2, 3]
-            for i, idx in enumerate(pattern):
-                m = notes[idx % len(notes)] + (12 if idx >= len(notes) else 0)
-                comp.add(piano(hz(m), BEAT * 1.6), at(bar, i * 0.5),
-                         gain=0.20, pan_=-0.15)
-        else:
-            for beat, dur, gain in ((0.0, 2.2, 0.19), (2.5, 1.6, 0.15)):
-                for j, m in enumerate(notes):
-                    # 轻微琶音错位，像手指依次按下
-                    comp.add(piano(hz(m), dur * BEAT), at(bar, beat + j * 0.012),
-                             gain=gain / np.sqrt(len(notes)), pan_=-0.22)
-            if bar % 2 == 1:
-                comp.add(piano(hz(notes[-1] + 12), BEAT * 1.4), at(bar, 3.5),
-                         gain=0.10, pan_=0.25)
+        # 左手分解和弦，像缓缓流淌的思绪，力度极轻
+        for i, idx in enumerate([0, 1, 2, 3, 2, 1, 2, 3]):
+            if bar == BARS - 1 and i > 0:
+                break # 最后一小节只弹一个根音
+            m = notes[idx % len(notes)] + (12 if idx >= len(notes) else 0)
+            # 轻微的错位增加人情味
+            offset = np.random.default_rng(bar * 8 + i).uniform(-0.02, 0.02)
+            keys.add(piano(hz(m), BEAT * 1.5, vel=0.35), at(bar, i * 0.5) + offset, gain=0.35, pan_=-0.1)
 
-    # ---------- 旋律
-    for i, phrase in enumerate(MELODY):
-        bar = 4 + i
+    # ---------- 3. 钢琴旋律 (Melody)
+    for bar, phrase in enumerate(MELODY):
         for beat, dur, m in phrase:
-            note = piano(hz(m), dur * BEAT * 0.98)
-            lead.add(echo(note, delay=BEAT * 0.75, feedback=0.22, mix=0.18),
-                     at(bar, beat), gain=0.26, pan_=0.10)
-    for beat, dur, m in FINAL:
-        lead.add(echo(piano(hz(m), dur * BEAT), delay=BEAT * 0.75, mix=0.2),
-                 at(14, beat), gain=0.24, pan_=0.10)
+            offset = np.random.default_rng(bar * 10 + int(beat)).uniform(-0.015, 0.03)
+            note = piano(hz(m), dur * BEAT * 1.2, vel=0.45)
+            keys.add(note, at(bar, beat) + offset, gain=0.45, pan_=0.1)
 
-    # ---------- 低音：从第二小节进入
-    for bar, name in enumerate(PROGRESSION):
-        if bar < 2:
-            continue
-        m = BASS[name]
-        low.add(piano(hz(m), BAR * 1.02), at(bar), gain=0.30 if bar < 4 else 0.26)
+    # ---------- 4. 总线混音
+    # 给钢琴加上低通滤波器，模拟毛毡钢琴（Felt Piano）温暖闷沉的听感
+    warm_keys = lowpass(keys.buf, 1800)
+    
+    # 极具空间感的房间混响，但不要太大，保持私密感
+    piano_bus = reverb(warm_keys, dur=2.5, mix=0.25, damp=3000)
+    env_bus = reverb(env.buf, dur=1.5, mix=0.1, damp=6000)
 
-    # ---------- 弦垫：每小节铺一层，靠重叠形成呼吸
-    for bar, name in enumerate(PROGRESSION):
-        level = 0.052 if bar < 4 else 0.062
-        for j, m in enumerate(PAD[name]):
-            air.add(pad(hz(m), BAR * 1.25, voices=3, cutoff=1300, attack=1.1),
-                    at(bar), gain=level, pan_=(-0.35 + 0.35 * j))
-
-    # ---------- 打击：沙锤打满八分音符，轻底鼓从第 9 小节进入
-    for bar in range(4, 16):
-        for i in range(8):
-            accent = 0.085 if i % 2 == 0 else 0.055
-            perc.add(shaker(), at(bar, i * 0.5), gain=accent,
-                     pan_=0.3 if i % 2 == 0 else -0.25)
-    for bar in range(8, 16):
-        for beat in (0.0, 2.0):
-            perc.add(kick(tune=46), at(bar, beat), gain=0.30)
-
-    # ---------- 收尾
-    for j, m in enumerate([36, 48, 55, 60, 64, 67]):
-        comp.add(piano(hz(m), 6.0), at(15) + j * 0.045, gain=0.14, pan_=-0.1)
-    lead.add(bell(hz(84), 5.0), at(15, 0.05), gain=0.12, pan_=0.3)
-
-    # ---------- 总线
-    keys = comp.buf + low.buf
-    keys = reverb(keys, dur=2.8, mix=0.20, damp=4800)
-    lead_bus = reverb(lead.buf, dur=3.4, mix=0.32, damp=5200)
-    air_bus = reverb(air.buf, dur=5.0, mix=0.48, damp=3600)
-
-    mix = keys + lead_bus + air_bus + perc.buf * 0.85
-    return render(out / "02_summer_letter.wav", mix, fade=(0.02, 3.0))
-
+    mix = piano_bus + env_bus
+    
+    # 压一点底噪，模拟旧磁带或安静房间的空气声
+    air_noise = np.random.default_rng(99).standard_normal(mix.shape)
+    mix += lowpass(air_noise, 800) * 0.001
+    
+    return render(out / "02_summer_letter.wav", mix, fade=(0.02, 4.0))
 
 if __name__ == "__main__":
     main(Path(__file__).resolve().parents[1] / "output")
