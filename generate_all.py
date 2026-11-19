@@ -8,7 +8,7 @@ WAV 会写到 output/ 目录，可以直接拖进任何播放器或剪辑软件�
 import time
 from pathlib import Path
 
-from examples import (before_noise, celestial_echo, chinese_dream, hundred_birds,
+from examples import (before_noise, cyber_city, chinese_dream, pixel_memories,
                       midnight_radio, neon_night, orbit, sfx_showcase,
                       summer_letter, toward_the_light, war_drums)
 
@@ -20,8 +20,8 @@ MODULES = [
     chinese_dream,
     midnight_radio,
     orbit,
-    hundred_birds,
-    celestial_echo,
+    pixel_memories,
+    cyber_city,
     war_drums,
     sfx_showcase,
 ]

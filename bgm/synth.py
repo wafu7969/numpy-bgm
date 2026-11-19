@@ -265,26 +265,43 @@ def suona(freq: float, dur: float, sr: int = SR, vel: float = 1.0,
         k = np.clip(t / max(st, 1e-3), 0.0, 1.0)
         f = f0 * (float(slide_to) / f0) ** (k ** 0.8)
 
+    # 唢呐吹奏时起音常有轻微的音高上滑（约半个半音内），增加真实感
+    attack_scoop = 0.025 * np.exp(-t / 0.04)
+
     vib_env = np.clip((t - 0.18) / 0.22, 0.0, 1.0)     # 颤音渐入，像人吹出来的
-    f = f * (1.0 + vib_depth * vib_env * np.sin(2 * np.pi * vib * t))
+    f = f * (1.0 - attack_scoop + vib_depth * vib_env * np.sin(2 * np.pi * vib * t))
     if flutter > 0:
-        f = f * (1.0 + 0.004 * np.sin(2 * np.pi * 24.0 * t))
+        f = f * (1.0 + 0.006 * np.sin(2 * np.pi * 24.0 * t))
 
     ph = 2 * np.pi * np.cumsum(f) / sr
     out = np.zeros(n)
-    for k in range(1, 13):
+    
+    # 增加谐波数量，减缓衰减，突出奇数次谐波（双簧管类特征，更明亮刺耳）
+    for k in range(1, 32):
         if f0 * k > sr * 0.45:
             break
-        out += np.sin(k * ph) / k
+        amp = 1.0 / (k ** 0.7)
+        if k % 2 == 1:
+            amp *= 1.5  # 奇数次谐波增强
+        out += amp * np.sin(k * ph)
 
-    out += 0.035 * np.random.default_rng(3).standard_normal(n)   # 簧片气息
-    out = highpass(out, 240, sr)
-    out += 0.40 * bandpass(out, 1200, 3800, sr)                  # 鼻音共振峰
+    # 簧片气息与起音爆音
+    noise = np.random.default_rng(3).standard_normal(n)
+    out += 0.06 * noise * np.exp(-t / 0.03)
+    out += 0.02 * noise
+    
+    out = highpass(out, 300, sr)
+    
+    # 强烈的共振峰是唢呐"流氓"音色的来源 (集中在 1.2kHz 和 3kHz 附近)
+    formant1 = bandpass(out, 1000, 1600, sr)
+    formant2 = bandpass(out, 2500, 3500, sr)
+    out = out + 1.8 * formant1 + 1.5 * formant2
+    
     if flutter > 0:
-        out *= 1.0 + flutter * 0.6 * np.sin(2 * np.pi * 21.0 * t)
+        out *= 1.0 + flutter * 0.7 * np.sin(2 * np.pi * 21.0 * t)
 
-    out = np.tanh(out * 1.2)
-    env = adsr(dur, a=attack, d=0.1, s=0.86, r=min(0.4, dur * 0.45), curve=3.0)
+    out = np.tanh(out * 2.2) # 增加过载，让声音更"炸"
+    env = adsr(dur, a=attack, d=0.1, s=0.9, r=min(0.4, dur * 0.45), curve=3.0)
     return _fit(out * env, vel)
 
 

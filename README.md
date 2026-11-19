@@ -14,8 +14,8 @@
 | 05 | [山河入梦](demos/05_chinese_dream.mp3) | 中国风 | 68 | D 宫五声 | 远山、宣纸、留白 |
 | 06 | [深夜电台](demos/06_midnight_radio.mp3) | Lo-Fi Hip-Hop | 78 | C 大调 | 凌晨两点、台灯、日记 |
 | 07 | [星轨](demos/07_orbit.mp3) | 氛围电子 / 8D | 92 | E 小调 | 星空、环绕、旋转 |
-| 08 | [百鸟朝凤](demos/08_hundred_birds.mp3) | 唢呐 / 民乐 | 132 | D 宫五声 | 庆典、百鸟、震撼 |
-| 09 | [天宫迅音（致敬）](demos/09_celestial_echo.mp3) | 电子合成 / 民乐 | 128 | A 小调 | 云海、天门、腾云 |
+| 08 | [像素回忆](demos/08_pixel_memories.mp3) | 8-bit 游戏 | 150 | C 大调 | 像素、跳跃、复古 |
+| 09 | [赛博之城](demos/09_cyber_city.mp3) | Synthwave | 120 | E 小调 | 赛博朋克、霓虹、迷幻 |
 | 10 | [战鼓](demos/10_war_drums.mp3) | 打击乐 / 战鼓 | 116 | D 小调 | 鼓声逼近、热血、开场 |
 | 11 | [音效合集](demos/11_sfx_showcase.mp3) | 音效 / 配音 | — | — | 28 种声音逐个展示 |
 
@@ -38,8 +38,8 @@ python -m examples.before_noise
 python -m examples.chinese_dream
 python -m examples.midnight_radio
 python -m examples.orbit
-python -m examples.hundred_birds
-python -m examples.celestial_echo
+python -m examples.pixel_memories
+python -m examples.cyber_city
 python -m examples.war_drums
 python -m examples.sfx_showcase
 ```
@@ -59,8 +59,8 @@ numpy-bgm/
 │   ├── chinese_dream.py     # 05 中国风
 │   ├── midnight_radio.py    # 06 Lo-Fi
 │   ├── orbit.py             # 07 左右环绕
-│   ├── hundred_birds.py     # 08 唢呐 / 民乐
-│   ├── celestial_echo.py    # 09 电子合成 / 民乐
+│   ├── pixel_memories.py    # 08 8-bit / 芯片音乐
+│   ├── cyber_city.py        # 09 Synthwave / 赛博朋克
 │   ├── war_drums.py         # 10 打击乐 / 战鼓
 │   └── sfx_showcase.py      # 11 音效 / 配音
 ├── demos/              # 试听用的 MP3

@@ -60,8 +60,8 @@ def midi(name) -> int:
 
 
 def hz(m) -> float:
-    """midi 编号 -> 频率（A4 = 440Hz）。"""
-    return 440.0 * 2.0 ** ((midi(m) - 69) / 12.0)
+    """midi 编号 -> 频率（A4 = 432Hz 矫正）。"""
+    return 432.0 * 2.0 ** ((midi(m) - 69) / 12.0)
 
 
 def chord(root: str, quality: str = "maj", octave: int = 3,
