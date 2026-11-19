@@ -128,4 +128,4 @@ MIT，见 [LICENSE](LICENSE)。随意使用、修改，商用也无需署名。
 
 欢迎大家关注我的公众号交流学习：
 
-![公众号二维码](https://raw.githubusercontent.com/wafu7969/numpy-bgm/main/assets/qrcode.jpg)
+![公众号二维码](assets/qrcode.jpg)
